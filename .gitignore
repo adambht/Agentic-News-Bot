@@ -3,7 +3,9 @@
     .vscode
     # Virtual environments
     venv/
+    pienv\
     pienv/
+    pienv
     .env/
     .env
     .env*/
