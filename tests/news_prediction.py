@@ -14,11 +14,10 @@ model = joblib.load("src/models/best_model.pkl")
 # Generate one structured news article (returns a NewsItem instance)
 news_item = generate_single_news_structured_llm()
 
-# Keep ground truth for verification (optional)
-ground_truth = getattr(news_item, "label", None)
+news_dict = news_item.dict()        # convert to dict
+ground_truth = news_dict.pop("label", None)  # remove and save label
+temp_df = pd.DataFrame([news_dict])  # only title, text, subject, date
 
-# Convert NewsItem to DataFrame
-temp_df = pd.DataFrame([news_item.dict()])
 
 # Preprocess
 X_new = preprocess_new_data(temp_df)

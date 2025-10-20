@@ -75,8 +75,12 @@ def preprocess_new_data(df: pd.DataFrame) -> pd.DataFrame:
     features_df['body_len'] = df['body_len']
     features_df['punct_per_word%'] = df['punct_per_word%']
     features_df['cap_per_word%'] = df['cap_per_word%']
-    
-    # 9️⃣ Scale using fitted scaler
+
+    # 9️⃣ Enforce feature order from training
+    trained_feature_order = joblib.load("src/models/trained_feature_order_LR.pkl")
+    features_df = features_df[trained_feature_order]  # now the column order matches training
+
+    # 10️⃣ Scale using fitted scaler
     features_scaled = scaler.transform(features_df)
-    
+
     return pd.DataFrame(features_scaled, columns=features_df.columns)
