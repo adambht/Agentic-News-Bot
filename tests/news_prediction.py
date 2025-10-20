@@ -3,24 +3,23 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pandas as pd
 import joblib
-from utils.data_preprocessing import preprocess_new_data
-from utils.simulation_helpers import generate_single_news_structured_llm  # returns a dict including ground_truth
-from utils.data_validation import NewsItem  # import pydantic model
+from src.embeddings.embed_model import preprocess_and_embed  # use wrapper for saved or HF model
+from utils.simulation_helpers import generate_single_news_structured_llm
+from utils.data_validation import NewsItem
 
+# Load your saved LogisticRegression model
+model = joblib.load("src/models/logisticRegressor.pkl")
 
-# Load your saved model
-model = joblib.load("src/models/best_model.pkl")
-
-# Generate one structured news article (returns a NewsItem instance)
+# Generate one structured news article
 news_item = generate_single_news_structured_llm()
+news_dict = news_item.model_dump()  # Pydantic v2: use model_dump instead of dict()
+ground_truth = news_dict.pop("label", None)  # save label separately
 
-news_dict = news_item.dict()        # convert to dict
-ground_truth = news_dict.pop("label", None)  # remove and save label
-temp_df = pd.DataFrame([news_dict])  # only title, text, subject, date
+# Convert to DataFrame
+temp_df = pd.DataFrame([news_dict])
 
-
-# Preprocess
-X_new = preprocess_new_data(temp_df)
+# Generate embeddings for new data
+X_new = preprocess_and_embed(temp_df, text_column='text')
 
 # Predict
 y_pred = model.predict(X_new)
