@@ -12,4 +12,4 @@
     *.pyc
     models/
     src/models/
-
+    __pycache__/
