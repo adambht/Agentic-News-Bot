@@ -1,15 +1,53 @@
-    __pycache__/    
-    .ipynb_checkpoints
-    .vscode
-    # Virtual environments
-    venv/
-    pienv/
-    pienv
-    .env/
-    .env
-    .env*/
-    *.pkl
-    *.pyc
-    models/
-    src/models/
-    __pycache__/
+# -------------------------------
+# Python
+# -------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.joblib
+
+# -------------------------------
+# Jupyter Notebook
+# -------------------------------
+.ipynb_checkpoints/
+*.ipynb
+
+# -------------------------------
+# Virtual environments
+# -------------------------------
+venv/
+env/
+pienv/
+.env
+*.env
+
+# -------------------------------
+# Data / dataset files
+# -------------------------------
+src/data/
+*.csv
+*.tsv
+*.json
+
+# -------------------------------
+# Logs
+# -------------------------------
+*.log
+
+# -------------------------------
+# IDE / editor configs
+# -------------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# -------------------------------
+# OS files
+# -------------------------------
+.DS_Store
+Thumbs.db
+models/
+src/models/
