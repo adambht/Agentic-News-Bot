@@ -19,6 +19,9 @@ Agentic-News-Bot/
 ├── .env                            # Environment variables (not tracked)
 ├── .gitignore                      # Git ignore rules
 │
+├── architecture/                   # Project setup and documentation
+│   └── project-structure-script.sh # Script to generate project structure
+│
 ├── notebooks/                      # Jupyter notebooks for exploration
 │   └── fake-news-detection.ipynb  # Fake news detection analysis
 │
@@ -52,6 +55,14 @@ Agentic-News-Bot/
     ├── data_validation.py          # Input validation
     ├── simulation_helpers.py       # Simulation utilities
     └── train_and_save_model.py     # Model training pipeline
+```
+
+### Quick Setup
+
+To recreate the project structure from scratch, run:
+
+```bash
+bash architecture/project-structure-script.sh
 ```
 
 ## 🚀 Getting Started
