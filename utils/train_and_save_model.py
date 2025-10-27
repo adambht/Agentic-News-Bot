@@ -7,6 +7,8 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import joblib
+from sklearn.metrics import classification_report, accuracy_score
+
 from src.embeddings.embed_model import embed_model, preprocess_and_embed  # your local embedding model
 
 # Load data
@@ -30,7 +32,6 @@ clf = LogisticRegression(max_iter=1000)
 clf.fit(X_train, y_train)
 
 # Evaluate
-from sklearn.metrics import classification_report, accuracy_score
 y_pred = clf.predict(X_test)
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
