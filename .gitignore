@@ -9,10 +9,9 @@ __pycache__/
 *.joblib
 
 # -------------------------------
-# Jupyter Notebook
+# Jupyter notebooks
 # -------------------------------
 .ipynb_checkpoints/
-*.ipynb
 
 # -------------------------------
 # Virtual environments
