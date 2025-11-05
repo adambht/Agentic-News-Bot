@@ -4,6 +4,8 @@ numpy>=1.24.0
 
 # Web framework
 Flask>=3.1.2
+flask_cors
+
 # Machine Learning
 scikit-learn>=1.2.0
 
@@ -18,8 +20,13 @@ seaborn>=0.12.0
 langchain>=0.1.0
 openai>=1.0.0
 langchain-community == 0.3.31
-langchain-openai == 0.3.35 
+langchain-openai == 0.3.35
+langgraph
 
 
 # Environment variables
 python-dotenv>=1.0.0
+transformers
+torch
+accelerate
+bitsandbytes

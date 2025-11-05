@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🗞️ Press Conference Simulator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 12px;
+      width: 750px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #1e1e2d;
+      margin-bottom: 25px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 15px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #005fcc;
+    }
+    .chat-box {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      padding: 12px;
+      height: 320px;
+      overflow-y: auto;
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+    .msg {
+      margin-bottom: 10px;
+    }
+    .msg.user { color: #0a58ca; text-align: right; }
+    .msg.journalist { color: #000; }
+    .msg.explain { color: #198754; font-style: italic; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>🗞️ Press Conference Simulator</h2>
+
+    <!-- Setup Section -->
+    <div id="setup">
+      <label>Persona:</label>
+      <select id="persona">
+        <option value="investigative_hawk">Investigative Hawk</option>
+        <option value="analytical_columnist">Analytical Columnist</option>
+        <option value="human_interest">Human-Interest Reporter</option>
+        <option value="tech_policy">Tech Policy Correspondent</option>
+      </select>
+
+      <label>Topic:</label>
+      <input id="topic" placeholder="e.g., AI in healthcare" />
+
+      <label>Guest Role:</label>
+      <input id="role" value="CEO" />
+
+      <label>Opening Statement:</label>
+      <textarea id="speech" rows="4" placeholder="Type the guest's opening statement..."></textarea>
+
+      <button onclick="startInterview()">🎬 Start Interview</button>
+    </div>
+
+    <!-- Chat Section -->
+    <div id="chat" style="display:none;">
+      <div class="chat-box" id="dialogue"></div>
+      <textarea id="answer" rows="2" placeholder="Type your reply..."></textarea>
+      <div class="controls">
+        <button onclick="sendAnswer()">Send Answer</button>
+        <button style="background:#dc3545" onclick="endInterview()">End Interview</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dialogue = document.getElementById('dialogue');
+
+    async function startInterview() {
+      const payload = {
+        persona: document.getElementById('persona').value,
+        topic: document.getElementById('topic').value,
+        role: document.getElementById('role').value,
+        speech: document.getElementById('speech').value
+      };
+
+      const res = await fetch('/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('chat').style.display = 'block';
+
+      addMessage('journalist', data.question);
+      if (data.explanation) addMessage('explain', data.explanation);
+    }
+
+    async function sendAnswer() {
+      const answer = document.getElementById('answer').value.trim();
+      if (!answer) return;
+      addMessage('user', answer);
+      document.getElementById('answer').value = '';
+
+      const res = await fetch('/reply', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ answer })
+      });
+
+      const data = await res.json();
+      addMessage('journalist', data.question);
+      if (data.explanation) addMessage('explain', data.explanation);
+      scrollBottom();
+    }
+
+    function endInterview() {
+      addMessage('journalist', "[Interview ended]");
+      document.getElementById('answer').disabled = true;
+    }
+
+    function addMessage(type, text) {
+      const msg = document.createElement('div');
+      msg.classList.add('msg', type);
+      msg.textContent = (type === 'user' ? 'You: ' :
+                         type === 'journalist' ? 'Journalist: ' :
+                         '🧠 Explainability: ') + text;
+      dialogue.appendChild(msg);
+      scrollBottom();
+    }
+
+    function scrollBottom() {
+      dialogue.scrollTop = dialogue.scrollHeight;
+    }
+  </script>
+</body>
+</html>
