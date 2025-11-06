@@ -1,104 +1,134 @@
 # src/agents/Press_Conf_Simulator/press_conference_agent.py
+"""
+Press Conference Agent Graph
+----------------------------
+
+This module defines the LangGraph pipeline that runs one full
+Press Conference turn:
+    build_prompt → mistral_query → explainability → END
+
+All model inference and explainability are executed remotely
+on Kaggle (via ngrok). The local graph only orchestrates requests
+and maintains conversation state.
+"""
 
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Optional
+import requests, json
 from src.agents.Press_Conf_Simulator.journalist_nodes import build_prompt_node
-import requests, os, json
+from utils.Press_Simulator.api_endpoints import KAGGLE_GENERATE_API, KAGGLE_EXPLAIN_API
+from utils.Press_Simulator.logger import log_info, log_error, log_warning
 
-# --- Define the state schema ---
+
+# ===============================================================
+# State Schema
+# ===============================================================
 class AgentState(TypedDict, total=False):
     persona: str
     topic: str
     role: str
     speech: str
-    prompt: str
+    history: list
+    messages: list
     journalist_question: str
     explanation: str
 
 
-# --- Kaggle endpoints (edit with your live ngrok URLs) ---
-KAGGLE_GENERATE_API = os.getenv(
-    "KAGGLE_GENERATE_API",
-    "https://unbevelled-articularly-linn.ngrok-free.dev/generate"  # <-- update this
-)
-KAGGLE_EXPLAIN_API = os.getenv(
-    "KAGGLE_EXPLAIN_API",
-    "https://unbevelled-articularly-linn.ngrok-free.dev/explain"   # <-- update this
-)
+# ===============================================================
+# 1️⃣ Query the Kaggle backend for journalist question
+# ===============================================================
+def _extract_question(text: str) -> str:
+    """
+    Extracts the journalist's question between the LAST <QUESTION> and <eoa> tags.
+    If <eoa> is missing, returns everything after the last <QUESTION>.
+    Returns '[Empty model output]' if nothing valid is found.
+    """
+    import re
+    if not text:
+        return "[Empty model output]"
 
-# --- 1️⃣ Query the Kaggle backend for question generation ---
+    # --- 1️⃣ Try to find complete <QUESTION> ... <eoa> blocks ---
+    matches = re.findall(r"<QUESTION>(.*?)<eoa>", text, flags=re.DOTALL | re.IGNORECASE)
+    if matches:
+        return matches[-1].strip()
+
+    # --- 2️⃣ Handle the case where <QUESTION> exists but no <eoa> follows ---
+    start_match = re.search(r"<QUESTION>(.*)", text, flags=re.DOTALL | re.IGNORECASE)
+    if start_match:
+        # Take everything after the last <QUESTION> tag
+        body = start_match.group(1).strip()
+        return body
+
+    # --- 3️⃣ Last resort: return a fallback preview of text ---
+    return text.strip()[:500]
+
+
+
+
+
 def mistral_query_node(state: AgentState) -> AgentState:
-    prompt = state.get("prompt", "")
-    print("=" * 80)
-    print("🚀 Sending prompt to Kaggle backend:")
-    print(prompt[:400])
-    print("=" * 80)
+    """Sends the prepared messages to the Kaggle backend for generation."""
+    messages = state.get("messages", [])
+    if not messages:
+        log_error("No messages to send to Kaggle backend.")
+        state["journalist_question"] = "[Prompt missing]"
+        return state
 
     try:
-        # Send the prompt to the Kaggle backend
-        res = requests.post(KAGGLE_GENERATE_API, json={"prompt": prompt}, timeout=90)
-        print("🌐 Backend status:", res.status_code)
-        print("🌐 Raw Kaggle response:", res.text[:300])
+        log_info("🚀 Sending prompt to Kaggle backend...")
+        res = requests.post(KAGGLE_GENERATE_API, json={"messages": messages}, timeout=90)
+        log_info(f"🌐 Status: {res.status_code}")
 
-        try:
-            # Parse JSON response
-            data = res.json()
-            raw = data.get("response", "")
-
-            # 🧹 Clean the output and extract the question
-            if "?" in raw:
-                # Try to isolate the question after structured markers
-                question = raw.split("### OUTPUT")[-1].split("\n")[-1].strip('" ')
-                if not question.strip():
-                    question = raw.split("?")[0] + "?"
-            else:
-                question = raw.strip()
-
-            state["journalist_question"] = question
-
-        except Exception as e:
-            state["journalist_question"] = f"[Error decoding Kaggle response: {e}]"
+        data = res.json()
+        raw = data.get("response", "")
+        question = _extract_question(raw)
+        state["journalist_question"] = question
+        log_info(f"🗞️ Journalist question: {question}")
 
     except Exception as e:
-        print("❌ ERROR contacting Kaggle backend:", e)
-        state["journalist_question"] = f"[Error contacting backend: {e}]"
+        log_error(f"❌ Error contacting Kaggle backend: {e}")
+        state["journalist_question"] = f"[Backend error: {e}]"
 
     return state
 
 
 
-# --- 2️⃣ Call Kaggle explainability endpoint ---
+# ===============================================================
+# 2️⃣ Call Kaggle explainability endpoint
+# ===============================================================
 def explainability_api_node(state: AgentState) -> AgentState:
+    """Calls Kaggle backend to compute SHAP/semantic/attention explanations."""
     question = state.get("journalist_question", "")
     speech = state.get("speech", "")
+    if not question or not speech:
+        log_warning("Insufficient data for explainability.")
+        state["explanation"] = "No data for explainability."
+        return state
 
-    modes = ["semantic", "attention", "shap", "lime"]  # run all modes sequentially
-    print("=" * 80)
-    print(f"🧩 Running explainability for all modes on Kaggle")
-    print(f"Speech: {speech[:100]}...")
-    print(f"Question: {question}")
-    print("=" * 80)
+    log_info("🧩 Running explainability modes on Kaggle backend...")
 
-    explanations = {}
+    try:
+        payload = {"speech": speech, "question": question, "mode": "shap"}
+        res = requests.post(KAGGLE_EXPLAIN_API, json=payload, timeout=120)
+        data = res.json()
+        explanation = data.get("explanation", "No explanation returned.")
+        state["explanation"] = explanation
+        log_info(f"✅ Explainability (SHAP): {explanation[:120]}...")
 
-    for mode in modes:
-        try:
-            payload = {"speech": speech, "question": question, "mode": mode}
-            res = requests.post(KAGGLE_EXPLAIN_API, json=payload, timeout=120)
-            data = res.json()
-            explanations[mode] = data.get("explanation", "No output")
-            print(f"[{mode.upper()}] {explanations[mode]}")
-        except Exception as e:
-            explanations[mode] = f"Error: {e}"
-            print(f"[{mode.upper()}] ❌ Error calling explainability API: {e}")
+    except Exception as e:
+        log_error(f"❌ Error during explainability: {e}")
+        state["explanation"] = f"[Explainability error: {e}]"
 
-    # Only keep SHAP (or nothing) visible to frontend if you wish
-    state["explanation"] = explanations.get("shap", "")
     return state
 
 
-# --- 3️⃣ Full pipeline graph ---
+
+
+# ===============================================================
+# 3️⃣ Build LangGraph pipeline
+# ===============================================================
 def press_conference_agent():
+    """Compiles and returns the Press Conference LangGraph pipeline."""
     g = StateGraph(AgentState)
 
     g.add_node("build_prompt", build_prompt_node)
@@ -110,5 +140,5 @@ def press_conference_agent():
     g.add_edge("mistral_query", "explain")
     g.add_edge("explain", END)
 
-    app = g.compile()
-    return app
+    log_info("🧱 Press Conference Graph compiled successfully.")
+    return g.compile()

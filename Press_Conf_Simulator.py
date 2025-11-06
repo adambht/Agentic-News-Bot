@@ -1,95 +1,122 @@
-# src/agents/Press_Conf_Simulator/app.py
+# Press_Conf_Simulator.py
+"""
+Flask Application - Press Conference Simulator
+----------------------------------------------
+
+This server connects the HTML front-end with the local LangGraph agent
+that orchestrates communication with the Kaggle backend via ngrok.
+
+Routes:
+    /               -> Frontend (HTML interface)
+    /start          -> Starts a new interview (first journalist question)
+    /reply          -> Handles user (guest) response and generates next question
+    /reset          -> Clears the current session
+
+All heavy inference runs on Kaggle — this Flask app only coordinates state.
+"""
 
 from flask import Flask, request, jsonify, session, render_template
 from flask_cors import CORS
 from src.agents.Press_Conf_Simulator.press_conference_agent import press_conference_agent
+from utils.Press_Simulator.logger import log_info, log_warning
 
-# --------------------------------------------------------------------
+
+# ===============================================================
 # 1️⃣ App setup
-# --------------------------------------------------------------------
+# ===============================================================
 app = Flask(__name__, template_folder="templates/Press_Conf_Simulator")
-app.secret_key = "super-secret-session-key"  # Use a strong random string in prod
+app.secret_key = "super-secret-session-key"  # Replace for prod
 CORS(app)
 
-# Build once; reuse across sessions
+# Initialize LangGraph pipeline once
 graph = press_conference_agent()
+log_info("✅ LangGraph pipeline initialized.")
 
-# --------------------------------------------------------------------
+
+# ===============================================================
 # 2️⃣ Routes
-# --------------------------------------------------------------------
-
-@app.route('/')
+# ===============================================================
+@app.route("/")
 def home():
     """Serve the Press Conference Simulator frontend."""
-    return render_template('index_Press_Conf_Simulator.html')
+    return render_template("index_Press_Conf_Simulator.html")
 
 
-@app.route('/start', methods=['POST'])
+@app.route("/start", methods=["POST"])
 def start():
-    """Initialize a new interview session with persona and topic."""
+    """Initialize a new interview session."""
     data = request.get_json(force=True)
-    print("=" * 80)
-    print("🎬 Starting new press conference session")
-    print(f"Persona: {data.get('persona')}, Topic: {data.get('topic')}, Role: {data.get('role')}")
-    print("=" * 80)
+    persona = data.get("persona", "investigative_hawk")
+    topic = data.get("topic", "")
+    role = data.get("role", "CEO")
+    speech = data.get("speech", "")
 
-    # Initialize the conversation state
+    log_info("🎬 Starting new Press Conference Session")
+    log_info(f"Persona={persona}, Topic={topic}, Role={role}")
+
+    # Initialize agent state
     state = {
-        "persona": data.get("persona", "investigative_hawk"),
-        "topic": data.get("topic", ""),
-        "role": data.get("role", "guest"),
-        "speech": data.get("speech", ""),
-        "history": []
+        "persona": persona,
+        "topic": topic,
+        "role": role,
+        "speech": speech,
+        "history": [],
     }
 
-    # Run through the LangGraph pipeline
+    # Run LangGraph pipeline (1st journalist question)
     result = graph.invoke(state)
     question = result.get("journalist_question", "[No question generated]")
+    explanation = result.get("explanation", "")
 
-    # Store conversation history in session
+    # Save conversation in session
     state["history"].append({"role": "journalist", "content": question})
     session["state"] = state
 
-    print(f"🗞️ First question: {question}")
-    return jsonify({"question": question})
+    log_info(f"🗞️ First question: {question}")
+    return jsonify({"question": question, "explanation": explanation})
 
 
-@app.route('/reply', methods=['POST'])
+@app.route("/reply", methods=["POST"])
 def reply():
-    """Handle user (guest) responses and trigger next journalist question."""
-    user_answer = request.get_json(force=True).get("answer", "")
+    """Handle the guest's response and trigger the next question."""
+    user_answer = request.get_json(force=True).get("answer", "").strip()
+    if not user_answer:
+        return jsonify({"error": "Empty response"}), 400
+
     state = session.get("state", {})
+    if not state:
+        log_warning("⚠️ No active session found.")
+        return jsonify({"error": "No active session"}), 400
 
     # Log and update conversation
-    print("=" * 80)
-    print("🗣️ Guest reply:", user_answer)
-    print("=" * 80)
-
+    log_info(f"🗣️ Guest reply: {user_answer}")
     state.setdefault("history", [])
     state["history"].append({"role": "guest", "content": user_answer})
 
-    # Run next iteration
+    # Run next journalist question
     result = graph.invoke(state)
     question = result.get("journalist_question", "[No question generated]")
+    explanation = result.get("explanation", "")
 
-    # Append journalist response and save state
+    # Update session
     state["history"].append({"role": "journalist", "content": question})
     session["state"] = state
 
-    print(f"🎤 Journalist asks: {question}")
-    return jsonify({"question": question})
+    log_info(f"🎤 Journalist asks: {question}")
+    return jsonify({"question": question, "explanation": explanation})
 
 
-@app.route('/reset', methods=['POST'])
+@app.route("/reset", methods=["POST"])
 def reset():
-    """Reset the entire conversation session."""
+    """Reset the current interview session."""
     session.clear()
-    print("🔄 Conversation reset.")
+    log_info("🔄 Session reset by user.")
     return jsonify({"message": "Session reset."})
 
 
-# --------------------------------------------------------------------
+# ===============================================================
 # 3️⃣ Run server
-# --------------------------------------------------------------------
+# ===============================================================
 if __name__ == "__main__":
+    log_info("🚀 Press Conference Simulator running on http://127.0.0.1:7860")
     app.run(host="0.0.0.0", port=7860, debug=True)
