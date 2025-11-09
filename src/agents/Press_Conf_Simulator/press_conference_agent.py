@@ -76,7 +76,7 @@ def mistral_query_node(state: AgentState) -> AgentState:
 
     try:
         log_info("🚀 Sending prompt to Kaggle backend...")
-        res = requests.post(KAGGLE_GENERATE_API, json={"messages": messages}, timeout=90)
+        res = requests.post(KAGGLE_GENERATE_API, json={"messages": messages}, timeout=2000)
         log_info(f"🌐 Status: {res.status_code}")
 
         data = res.json()
@@ -109,7 +109,7 @@ def explainability_api_node(state: AgentState) -> AgentState:
 
     try:
         payload = {"speech": speech, "question": question, "mode": "shap"}
-        res = requests.post(KAGGLE_EXPLAIN_API, json=payload, timeout=120)
+        res = requests.post(KAGGLE_EXPLAIN_API, json=payload, timeout=2000)
         data = res.json()
         explanation = data.get("explanation", "No explanation returned.")
         state["explanation"] = explanation
