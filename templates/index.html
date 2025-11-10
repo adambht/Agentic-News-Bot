@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>News Prediction App</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        p {
+            text-align: center;
+            color: #555;
+        }
+
+        .buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .news-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .news-meta {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 15px;
+        }
+
+        .news-body {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .prediction {
+            font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 18px;
+            display: inline-block;
+        }
+
+        .true {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .fake {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .result-text {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #333;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🗞️ News Prediction App</h1>
+    <p>Generate a news article and check its credibility with one click.</p>
+
+    <div class="buttons">
+        <button onclick="generateNews()">Generate News</button>
+        <button onclick="predictNews()">Predict</button>
+    </div>
+
+    <div class="card" id="news">
+        <p style="text-align:center; color:#777;">No news generated yet...</p>
+    </div>
+
+    <div class="card" id="result">
+        <p style="text-align:center; color:#777;">No prediction yet...</p>
+    </div>
+</div>
+
+<script>
+let currentNews = null;
+
+async function generateNews() {
+    const newsEl = document.getElementById("news");
+    const resultEl = document.getElementById("result");
+    newsEl.innerHTML = "<p style='text-align:center; color:#777;'>Generating news...</p>";
+    resultEl.innerHTML = "<p style='text-align:center; color:#777;'>No prediction yet...</p>";
+
+    try {
+        const response = await fetch("/generate_news");
+        const data = await response.json();
+        currentNews = data.news_item;
+        newsEl.innerHTML = `
+            <div class="news-title">${currentNews.title}</div>
+            <div class="news-meta">Subject: ${currentNews.subject} | Date: ${currentNews.date}</div>
+            <div class="news-body">${currentNews.text}</div>
+        `;
+    } catch (err) {
+        newsEl.innerHTML = "<p style='color:red;'>Error generating news: " + err + "</p>";
+    }
+}
+
+async function predictNews() {
+    const resultEl = document.getElementById("result");
+    if (!currentNews) {
+        resultEl.innerHTML = "<p style='color:red;'>Generate news first!</p>";
+        return;
+    }
+
+    resultEl.innerHTML = "<p style='text-align:center; color:#777;'>Predicting...</p>";
+
+    try {
+        const response = await fetch("/predict_news", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ news_item: currentNews })
+        });
+        const data = await response.json();
+        const pred = data.prediction.Prediction;
+        const conf = data.prediction.Confidence;
+        const colorClass = pred === "True News" ? "true" : "fake";
+
+        resultEl.innerHTML = `
+            <span class="prediction ${colorClass}">${pred}</span>
+            <div class="result-text">Confidence: ${conf}</div>
+        `;
+    } catch (err) {
+        resultEl.innerHTML = "<p style='color:red;'>Error fetching prediction: " + err + "</p>";
+    }
+}
+</script>
+</body>
+</html>
