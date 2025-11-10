@@ -106,6 +106,21 @@ def reply():
     return jsonify({"question": question, "explanation": explanation})
 
 
+@app.route("/stop", methods=["POST"])
+def stop():
+    """Analyze the whole conversation when the user stops."""
+    state = session.get("state", {})
+    if not state:
+        return jsonify({"error": "No active session"}), 400
+
+    from src.agents.Press_Conf_Simulator.press_conference_agent import analysis_api_node
+    result = analysis_api_node(state)
+    analysis = result.get("analysis", {})
+
+    session.clear()
+    return jsonify({"analysis": analysis})
+
+
 @app.route("/reset", methods=["POST"])
 def reset():
     """Reset the current interview session."""

@@ -16,7 +16,7 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, Optional
 import requests, json
 from src.agents.Press_Conf_Simulator.journalist_nodes import build_prompt_node
-from utils.Press_Simulator.api_endpoints import KAGGLE_GENERATE_API, KAGGLE_EXPLAIN_API
+from utils.Press_Simulator.api_endpoints import KAGGLE_GENERATE_API, KAGGLE_EXPLAIN_API, KAGGLE_ANALYZE_API
 from utils.Press_Simulator.logger import log_info, log_error, log_warning
 
 
@@ -76,7 +76,7 @@ def mistral_query_node(state: AgentState) -> AgentState:
 
     try:
         log_info("🚀 Sending prompt to Kaggle backend...")
-        res = requests.post(KAGGLE_GENERATE_API, json={"messages": messages}, timeout=2000)
+        res = requests.post(KAGGLE_GENERATE_API, json={"messages": messages}, timeout=4000)
         log_info(f"🌐 Status: {res.status_code}")
 
         data = res.json()
@@ -108,18 +108,44 @@ def explainability_api_node(state: AgentState) -> AgentState:
     log_info("🧩 Running explainability modes on Kaggle backend...")
 
     try:
-        payload = {"speech": speech, "question": question, "mode": "shap"}
-        res = requests.post(KAGGLE_EXPLAIN_API, json=payload, timeout=2000)
+        payload = {"speech": speech, "question": question}
+        res = requests.post(KAGGLE_EXPLAIN_API, json=payload, timeout=4000)
         data = res.json()
-        explanation = data.get("explanation", "No explanation returned.")
-        state["explanation"] = explanation
-        log_info(f"✅ Explainability (SHAP): {explanation[:120]}...")
+
+        # Here’s the important change 👇
+        state["explanation"] = data
+        shap_text = data.get("shap", "No SHAP output.")
+        log_info(f"✅ Explainability (SHAP): {shap_text[:120]}...")
 
     except Exception as e:
         log_error(f"❌ Error during explainability: {e}")
         state["explanation"] = f"[Explainability error: {e}]"
 
     return state
+
+
+def analysis_api_node(state: AgentState) -> AgentState:
+    """Request full conversation analysis from Kaggle backend."""
+
+    try:
+        payload = {
+            "persona": state.get("persona", ""),
+            "role": state.get("role", ""),
+            "topic": state.get("topic", ""),
+            "speech": state.get("speech", ""),
+            "history": state.get("history", []),
+        }
+        res = requests.post(KAGGLE_ANALYZE_API, json=payload, timeout=4000)
+        data = res.json()
+        state["analysis"] = data
+        log_info(f"🧠 Raw analysis response: {data}")
+        log_info("🧠 Conversation analysis completed successfully.")
+    except Exception as e:
+        log_error(f"❌ Error during analysis: {e}")
+        state["analysis"] = {"error": str(e)}
+    return state
+
+
 
 
 

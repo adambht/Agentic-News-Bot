@@ -37,6 +37,12 @@ KAGGLE_GENERATE_API = os.getenv(
     f"{_DEFAULT_BASE}/generate"
 )
 
+KAGGLE_ANALYZE_API = os.getenv(
+    "KAGGLE_ANALYZE_API",
+    f"{_DEFAULT_BASE}/analyze"
+)
+
+
 KAGGLE_EXPLAIN_API = os.getenv(
     "KAGGLE_EXPLAIN_API",
     f"{_DEFAULT_BASE}/explain"

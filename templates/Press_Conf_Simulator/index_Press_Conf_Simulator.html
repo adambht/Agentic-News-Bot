@@ -20,6 +20,8 @@
       border-radius: 12px;
       padding: 30px 40px;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
     }
 
     h2 {
@@ -44,37 +46,174 @@
       font-size: 14px;
     }
 
+    /* Buttons */
     button {
+      position: relative;
       background: #007bff;
       color: white;
       border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
       cursor: pointer;
       margin-top: 20px;
       font-weight: 600;
-      transition: background 0.2s ease;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      overflow: hidden;
     }
 
     button:hover {
-      background: #005fcc;
+      background: #0069d9;
+      box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
     }
 
+    button:active:not(.loading) {
+      transform: scale(0.97);
+    }
+
+    /* Loading spinner */
+    button.loading {
+      color: transparent !important;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
+    button.loading::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Chat area */
     .chat-box {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      background: #fafafa;
-      padding: 14px;
-      height: 360px;
+      background: #f7f8fa;
+      border-radius: 12px;
+      padding: 16px;
+      height: 380px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.05);
       margin-top: 20px;
-      white-space: pre-line;
     }
 
-    .msg { margin-bottom: 10px; line-height: 1.4; }
-    .msg.user { color: #0a58ca; text-align: right; }
-    .msg.journalist { color: #000; }
-    .msg.explain { color: #198754; font-style: italic; }
+    .msg-wrapper {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 16px;
+      animation: fadeIn 0.25s ease-in;
+    }
+
+    .role-label {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #555;
+    }
+
+    .role-label.journalist {
+      justify-content: flex-start;
+      color: #1f2937;
+    }
+
+    .role-label.user {
+      justify-content: flex-end;
+      color: #0d47a1;
+    }
+
+    .msg {
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 75%;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .msg.journalist {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      color: #1a1a1a;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      align-self: flex-start;
+    }
+
+    .msg.user {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      color: #0d47a1;
+      align-self: flex-end;
+      text-align: right;
+    }
+
+    .msg.system {
+      text-align: center;
+      font-style: italic;
+      color: #6b7280;
+      background: none;
+      padding: 0;
+      align-self: center;
+      border: none;
+      box-shadow: none;
+    }
+
+    /* ✨ Explainability blocks inside chat */
+    .msg.explain {
+      align-self: stretch;
+      background: transparent;
+      padding: 0;
+      border: none;
+      box-shadow: none;
+    }
+
+    .msg.explain .explanation-box {
+      background: #f8fafc;
+      border: 1px solid #d1d5db;
+      border-left: 4px solid #3b82f6;
+      color: #1e3a8a;
+      font-size: 14px;
+      line-height: 1.6;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      animation: fadeInUp 0.25s ease-in;
+      position: relative;
+    }
+
+    .msg.explain .explanation-box::before {
+      content: "Explainability Analysis 🧠";
+      display: block;
+      font-weight: 700;
+      font-size: 13px;
+      color: #0f172a;
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .msg.explain .explanation-box pre {
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      overflow-x: auto;
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+    }
 
     .controls {
       display: flex;
@@ -86,19 +225,35 @@
       background: #dc3545;
     }
 
-    .explanation-box {
-      font-size: 13px;
-      background: #eafaf0;
-      padding: 6px 8px;
-      border-left: 3px solid #198754;
-      border-radius: 4px;
-      margin-top: 6px;
-      white-space: pre-line;
+    .controls button.end:hover {
+      background: #c82333;
     }
 
     .disabled {
       opacity: 0.6;
       pointer-events: none;
+    }
+
+    /* Analysis Section BELOW chat */
+    #analysis-section {
+      background: #f9fafb;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      margin-top: 20px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: none;
+      animation: fadeInUp 0.4s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -126,12 +281,15 @@
       <label>Opening Statement:</label>
       <textarea id="speech" rows="4" placeholder="Type the guest's opening statement..."></textarea>
 
-      <button onclick="startInterview()">🎬 Start Interview</button>
+      <button onclick="startInterview(event)">🎬 Start Interview</button>
     </div>
 
     <!-- Chat Section -->
     <div id="chat" style="display:none;">
       <div class="chat-box" id="dialogue"></div>
+
+      <!-- Conversation Analysis (outside chat scroll) -->
+      <div id="analysis-section"></div>
 
       <textarea id="answer" rows="2" placeholder="Type your answer as the guest..."></textarea>
 
@@ -146,8 +304,12 @@
     const dialogue = document.getElementById("dialogue");
     const setupDiv = document.getElementById("setup");
     const chatDiv = document.getElementById("chat");
+    const analysisSection = document.getElementById("analysis-section");
 
-    async function startInterview() {
+    async function startInterview(event) {
+      const btn = event.target;
+      btn.classList.add("loading");
+
       const payload = {
         persona: document.getElementById("persona").value,
         topic: document.getElementById("topic").value,
@@ -163,16 +325,25 @@
       });
 
       const data = await res.json();
+      btn.classList.remove("loading");
+
       setupDiv.style.display = "none";
       chatDiv.style.display = "block";
 
       addMessage("journalist", data.question);
-      if (data.explanation) addMessage("explain", data.explanation);
+      handleExplainability(data.explanation);
     }
 
     async function sendAnswer() {
+      const sendBtn = document.querySelector(".controls button");
+      sendBtn.classList.add("loading");
+
       const answer = document.getElementById("answer").value.trim();
-      if (!answer) return;
+      if (!answer) {
+        sendBtn.classList.remove("loading");
+        return;
+      }
+
       addMessage("user", answer);
       document.getElementById("answer").value = "";
       scrollBottom();
@@ -187,6 +358,7 @@
 
       const data = await res.json();
       removeLastSystemMessage();
+      sendBtn.classList.remove("loading");
 
       if (data.error) {
         addMessage("system", `⚠️ ${data.error}`);
@@ -194,27 +366,100 @@
       }
 
       addMessage("journalist", data.question);
-      if (data.explanation) addMessage("explain", data.explanation);
+      handleExplainability(data.explanation);
       scrollBottom();
     }
 
-    function endInterview() {
-      fetch("/reset", { method: "POST" });
-      addMessage("system", "🛑 Interview ended.");
+    function handleExplainability(explanation) {
+      if (!explanation) return;
+
+      if (typeof explanation === "object") {
+        let html = Object.entries(explanation)
+          .map(([mode, result]) =>
+            `<pre><strong>${mode.toUpperCase()}</strong>:\n${result}</pre>`
+          ).join("");
+        addMessage("explain", html);
+      } else {
+        addMessage("explain", explanation);
+      }
+    }
+
+    async function endInterview() {
+      addMessage("system", "🧠 Analyzing full conversation...");
+      const res = await fetch("/stop", { method: "POST" });
+      const data = await res.json();
+
+      removeLastSystemMessage();
       document.getElementById("answer").classList.add("disabled");
+
+      if (data.error) {
+        addMessage("system", `⚠️ ${data.error}`);
+        return;
+      }
+
+      const analysis = data.analysis;
+      if (!analysis) {
+        addMessage("system", "No analysis received.");
+        return;
+      }
+
+      // Build HTML for conversation analysis (outside chat)
+      let html = `
+        <strong>📋 Conversation Analysis</strong><br><br>
+        <b>Summary:</b> ${analysis.summary || "N/A"}<br><br>
+        <b>Strengths:</b><ul>${(analysis.strengths || []).map(s => `<li>${s}</li>`).join("")}</ul>
+        <b>Weaknesses:</b><ul>${(analysis.weaknesses || []).map(w => `<li>${w}</li>`).join("")}</ul>
+        <b>Suggestions:</b><ul>${(analysis.suggestions || []).map(s => `<li>${s}</li>`).join("")}</ul>
+      `;
+
+      if (analysis.scores) {
+        html += `<div style="margin-top:12px;"><strong>🎯 Performance Scores</strong><br>`;
+        html += Object.entries(analysis.scores).map(([key, val]) => `
+          <div style="margin:8px 0;">
+            <label style="text-transform:capitalize;">${key}</label>
+            <div style="background:#e5e7eb;border-radius:6px;height:10px;">
+              <div style="width:${(val/5)*100}%;background:#3b82f6;height:10px;border-radius:6px;"></div>
+            </div>
+            <span style="font-size:12px;color:#374151;">${val}/5</span>
+          </div>
+        `).join("");
+        html += `</div>`;
+      }
+
+      analysisSection.style.display = "block";
+      analysisSection.innerHTML = html;
+
+      addMessage("system", "✅ Conversation analysis displayed below the discussion.");
+      scrollBottom();
     }
 
     function addMessage(type, text) {
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("msg-wrapper");
+
       const msg = document.createElement("div");
       msg.classList.add("msg", type);
 
-      if (type === "journalist") msg.textContent = `Journalist: ${text}`;
-      else if (type === "user") msg.textContent = `You (Guest): ${text}`;
-      else if (type === "explain") {
-        msg.innerHTML = `<div class="explanation-box">🧠 ${text}</div>`;
-      } else msg.textContent = text;
+      const label = document.createElement("div");
 
-      dialogue.appendChild(msg);
+      if (type === "journalist") {
+        label.classList.add("role-label", "journalist");
+        label.textContent = "🧑‍💼 Journalist";
+        wrapper.appendChild(label);
+        msg.textContent = text;
+      } else if (type === "user") {
+        label.classList.add("role-label", "user");
+        label.textContent = "🧔 You (Guest)";
+        wrapper.appendChild(label);
+        msg.textContent = text;
+      } else if (type === "explain") {
+        msg.innerHTML = `<div class="explanation-box">${text}</div>`;
+      } else {
+        msg.textContent = text;
+      }
+
+      wrapper.appendChild(msg);
+      dialogue.appendChild(wrapper);
       scrollBottom();
     }
 
